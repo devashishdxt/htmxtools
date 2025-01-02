@@ -1,5 +1,4 @@
-//! A lightweight Rust crate for working with HTMX headers, specifically designed to integrate seamlessly with the
-//! `axum`.
+//! A lightweight Rust crate for working with HTMX headers, specifically designed to integrate seamlessly with `axum`.
 //!
 //! HTMX is a library that enhances HTML with AJAX capabilities, and it relies heavily on custom headers to enable
 //! dynamic interactions. The `htmx-headers`` crate simplifies handling these headers in Rust, enabling you to easily
