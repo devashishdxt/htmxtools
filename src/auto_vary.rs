@@ -10,8 +10,6 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use tower_layer::Layer;
 use tower_service::Service;
 
-const NUM_HX_REQUEST_HEADERS: usize = 8;
-
 pub(crate) enum HxRequestHeader {
     Boosted,
     CurrentUrl,
@@ -82,25 +80,20 @@ where
         Box::pin(async move {
             let mut res = fut.await?;
 
-            let mut received_headers = Vec::with_capacity(NUM_HX_REQUEST_HEADERS);
+            let mut received_headers = BTreeSet::new();
             while let Some(header) = receiver.recv().await {
-                received_headers.push(header.as_str());
+                received_headers.insert(header.as_str());
             }
 
             if received_headers.is_empty() {
                 return Ok(res);
             }
 
-            let mut processed_headers = BTreeSet::new();
-
             for received_header in received_headers {
-                if !processed_headers.contains(received_header) {
-                    res.headers_mut().append(
-                        http::header::VARY,
-                        received_header.parse().expect("invalid htmx vary header"),
-                    );
-                    processed_headers.insert(received_header);
-                }
+                res.headers_mut().append(
+                    http::header::VARY,
+                    received_header.parse().expect("invalid htmx Vary header"),
+                );
             }
 
             Ok(res)
