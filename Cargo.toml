@@ -1,6 +1,6 @@
 [package]
 name = "htmxtools"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Devashish Dixit <devashishdxt@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A lightweight Rust crate for working with HTMX headers, specifically designed to integrate seamlessly with axum."
