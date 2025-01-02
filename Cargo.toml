@@ -1,0 +1,18 @@
+[package]
+name = "htmx-headers"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["axum"]
+axum = ["dep:axum-core", "dep:axum-extra"]
+
+[dependencies]
+axum-core = { version = "0.5", optional = true }
+axum-extra = { version = "0.10", optional = true, features = ["typed-header"] }
+bytes = "1"
+headers-core = "0.3"
+http = "1"
+http-serde = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
