@@ -45,6 +45,7 @@ impl Deref for HxReselect {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponseParts for HxReselect {
     type Error = <TypedHeader<Self> as IntoResponseParts>::Error;
 
@@ -54,6 +55,7 @@ impl IntoResponseParts for HxReselect {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponse for HxReselect {
     fn into_response(self) -> Response {
         TypedHeader(self).into_response()

@@ -12,6 +12,8 @@ use headers_core::{Error, Header, HeaderName};
 use http::request::Parts;
 use http::{HeaderValue, Uri};
 
+#[cfg(feature = "auto-vary")]
+use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
 use crate::util::{iter::IterExt, uri::UriExt};
 
 static HX_CURRENT_URL: HeaderName = HeaderName::from_static("hx-current-url");
@@ -54,6 +56,7 @@ impl From<HxCurrentUrl> for Uri {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S> FromRequestParts<S> for HxCurrentUrl
 where
     S: Send + Sync,
@@ -61,6 +64,9 @@ where
     type Rejection = <TypedHeader<Self> as FromRequestParts<S>>::Rejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        #[cfg(feature = "auto-vary")]
+        parts.auto_vary_notify(HxRequestHeader::CurrentUrl).await;
+
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
             .map(|header| header.0)
@@ -68,6 +74,7 @@ where
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S> OptionalFromRequestParts<S> for HxCurrentUrl
 where
     S: Send + Sync,
@@ -78,6 +85,9 @@ where
         parts: &mut Parts,
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
+        #[cfg(feature = "auto-vary")]
+        parts.auto_vary_notify(HxRequestHeader::CurrentUrl).await;
+
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
             .map(|optional_header| optional_header.map(|header| header.0))

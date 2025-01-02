@@ -8,6 +8,8 @@ use headers_core::{Error, Header, HeaderName, HeaderValue};
 #[cfg(feature = "axum")]
 use http::request::Parts;
 
+#[cfg(feature = "auto-vary")]
+use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
 use crate::util::iter::IterExt;
 
 static HX_HISTORY_RESTORE_REQUEST: HeaderName =
@@ -18,6 +20,7 @@ static HX_HISTORY_RESTORE_REQUEST: HeaderName =
 pub struct HxHistoryRestoreRequest;
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S> FromRequestParts<S> for HxHistoryRestoreRequest
 where
     S: Send + Sync,
@@ -25,6 +28,11 @@ where
     type Rejection = <TypedHeader<Self> as FromRequestParts<S>>::Rejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        #[cfg(feature = "auto-vary")]
+        parts
+            .auto_vary_notify(HxRequestHeader::HistoryRestoreRequest)
+            .await;
+
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
             .map(|header| header.0)
@@ -32,6 +40,7 @@ where
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S> OptionalFromRequestParts<S> for HxHistoryRestoreRequest
 where
     S: Send + Sync,
@@ -42,6 +51,11 @@ where
         parts: &mut Parts,
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
+        #[cfg(feature = "auto-vary")]
+        parts
+            .auto_vary_notify(HxRequestHeader::HistoryRestoreRequest)
+            .await;
+
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
             .map(|optional_header| optional_header.map(|header| header.0))

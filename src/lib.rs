@@ -10,6 +10,8 @@
 //! - **Request Extractors**: Easily extract HTMX headers from incoming requests.
 //! - **Response Builders**: Conveniently build responses with HTMX headers.
 //! - **Axum Integration**: Built on top of `typed-headers` in `axum-extra` for seamless integration with the `axum`.
+//! - **Auto Vary**: Correctly handle response caching by automatically add the `Vary` header to responses based on the
+//!   extracted HTMX headers.
 //!
 //! ## Usage
 //!
@@ -94,6 +96,25 @@
 //!     (HxReswap::inner_html(), HxRetarget::from_static("#body"), "<div></div>")
 //! }
 //! ```
+//!
+//! ### Auto Vary
+//!
+//! To automatically add the `Vary` header to responses based on the extracted HTMX headers in `axum`, you can use the
+//! `AutoVaryLayer` in [`crate::auto_vary`].
+//!
+//! Here's an example of using the `AutoVaryLayer`:
+//!
+//! ```rust,ignore
+//! use axum::Router;
+//! use htmx_headers::auto_vary::AutoVaryLayer;
+//!
+//! fn app() -> Router {
+//!     Router::new().layer(AutoVaryLayer)
+//! }
+//! ```
+#[cfg(feature = "auto-vary")]
+#[cfg_attr(docsrs, doc(cfg(feature = "auto-vary")))]
+pub mod auto_vary;
 pub mod request;
 pub mod response;
 mod util;

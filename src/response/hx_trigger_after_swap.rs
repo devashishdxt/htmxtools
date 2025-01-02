@@ -67,6 +67,7 @@ impl<'a> From<Events<'a>> for HxTriggerAfterSwap<'a> {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponseParts for HxTriggerAfterSwap<'_> {
     type Error = <TypedHeader<Self> as IntoResponseParts>::Error;
 
@@ -76,6 +77,7 @@ impl IntoResponseParts for HxTriggerAfterSwap<'_> {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponse for HxTriggerAfterSwap<'_> {
     fn into_response(self) -> Response {
         TypedHeader(self).into_response()

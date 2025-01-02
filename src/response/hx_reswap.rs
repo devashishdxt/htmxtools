@@ -90,6 +90,7 @@ impl From<HxReswap> for SwapOption {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponseParts for HxReswap {
     type Error = <TypedHeader<Self> as IntoResponseParts>::Error;
 
@@ -99,6 +100,7 @@ impl IntoResponseParts for HxReswap {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponse for HxReswap {
     fn into_response(self) -> Response {
         TypedHeader(self).into_response()

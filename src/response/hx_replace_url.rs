@@ -62,6 +62,7 @@ enum HxReplaceUrlValue {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponseParts for HxReplaceUrl {
     type Error = <TypedHeader<Self> as IntoResponseParts>::Error;
 
@@ -71,6 +72,7 @@ impl IntoResponseParts for HxReplaceUrl {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponse for HxReplaceUrl {
     fn into_response(self) -> Response {
         TypedHeader(self).into_response()

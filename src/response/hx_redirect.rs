@@ -52,6 +52,7 @@ impl From<HxRedirect> for Uri {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponseParts for HxRedirect {
     type Error = <TypedHeader<Self> as IntoResponseParts>::Error;
 
@@ -61,6 +62,7 @@ impl IntoResponseParts for HxRedirect {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponse for HxRedirect {
     fn into_response(self) -> Response {
         TypedHeader(self).into_response()

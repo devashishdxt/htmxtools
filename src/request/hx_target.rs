@@ -8,6 +8,8 @@ use headers_core::{Error, Header, HeaderName, HeaderValue};
 #[cfg(feature = "axum")]
 use http::request::Parts;
 
+#[cfg(feature = "auto-vary")]
+use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
 use crate::util::{iter::IterExt, value_string::HeaderValueString};
 
 static HX_TARGET: HeaderName = HeaderName::from_static("hx-target");
@@ -41,6 +43,7 @@ impl Deref for HxTarget {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S> FromRequestParts<S> for HxTarget
 where
     S: Send + Sync,
@@ -48,6 +51,9 @@ where
     type Rejection = <TypedHeader<Self> as FromRequestParts<S>>::Rejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        #[cfg(feature = "auto-vary")]
+        parts.auto_vary_notify(HxRequestHeader::Target).await;
+
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
             .map(|header| header.0)
@@ -55,6 +61,7 @@ where
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl<S> OptionalFromRequestParts<S> for HxTarget
 where
     S: Send + Sync,
@@ -65,6 +72,9 @@ where
         parts: &mut Parts,
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
+        #[cfg(feature = "auto-vary")]
+        parts.auto_vary_notify(HxRequestHeader::Target).await;
+
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
             .map(|optional_header| optional_header.map(|header| header.0))

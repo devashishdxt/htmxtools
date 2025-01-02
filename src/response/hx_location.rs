@@ -93,6 +93,7 @@ impl From<Uri> for HxLocation {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponseParts for HxLocation {
     type Error = <TypedHeader<Self> as IntoResponseParts>::Error;
 
@@ -102,6 +103,7 @@ impl IntoResponseParts for HxLocation {
 }
 
 #[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
 impl IntoResponse for HxLocation {
     fn into_response(self) -> Response {
         TypedHeader(self).into_response()

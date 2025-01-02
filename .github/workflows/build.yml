@@ -18,7 +18,7 @@ jobs:
         with:
           toolchain: stable
       - name: Run cargo build
-        run: cargo build
+        run: cargo build --all-features
   lint:
     name: Lint
     runs-on: ubuntu-latest
