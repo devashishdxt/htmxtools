@@ -7,7 +7,7 @@ HTMX is a library that enhances HTML with AJAX capabilities, and it relies heavi
 dynamic interactions. The `htmx-headers`` crate simplifies handling these headers in Rust, enabling you to easily
 extract, process, and respond with HTMX-related data.
 
-### Features
+## Features
 
 - **Request Extractors**: Easily extract HTMX headers from incoming requests.
 - **Response Builders**: Conveniently build responses with HTMX headers.
@@ -15,7 +15,7 @@ extract, process, and respond with HTMX-related data.
 - **Auto Vary**: Correctly handle response caching by automatically add the `Vary` header to responses based on the
   extracted HTMX headers.
 
-### Usage
+## Usage
 
 To use `htmx-headers`, run the following command in your project directory:
 
@@ -33,7 +33,7 @@ To use `htmx-headers` without `axum`, run the following command in your project 
 cargo add htmx-headers --no-default-features
 ```
 
-#### Request Extractors
+### Request Extractors
 
 To extract HTMX headers from incoming requests in `axum`, you can directly use headers in `htmx_headers::request` in your
 handler functions as they implement `FromRequestParts` and `OptionalFromRequestParts` traits.
@@ -71,7 +71,7 @@ async fn another_handler(hx_target: Option<HxTarget>) -> impl IntoResponse {
 }
 ```
 
-#### Response Builders
+### Response Builders
 
 To build responses with HTMX headers in `axum`, you can use headers in `htmx_headers::response` in your handler functions
 as they implement `IntoResponseParts` and `IntoResponse` traits.
@@ -99,7 +99,7 @@ async fn handler() -> impl IntoResponse {
 }
 ```
 
-#### Auto Vary
+### Auto Vary
 
 To automatically add the `Vary` header to responses based on the extracted HTMX headers in `axum`, you can use the
 `AutoVaryLayer` in `htmx_headers::auto_vary`.

@@ -5,7 +5,7 @@
 //! dynamic interactions. The `htmx-headers`` crate simplifies handling these headers in Rust, enabling you to easily
 //! extract, process, and respond with HTMX-related data.
 //!
-//! ## Features
+//! # Features
 //!
 //! - **Request Extractors**: Easily extract HTMX headers from incoming requests.
 //! - **Response Builders**: Conveniently build responses with HTMX headers.
@@ -13,7 +13,7 @@
 //! - **Auto Vary**: Correctly handle response caching by automatically add the `Vary` header to responses based on the
 //!   extracted HTMX headers.
 //!
-//! ## Usage
+//! # Usage
 //!
 //! To use `htmx-headers`, run the following command in your project directory:
 //!
@@ -31,7 +31,7 @@
 //! cargo add htmx-headers --no-default-features
 //! ```
 //!
-//! ### Request Extractors
+//! ## Request Extractors
 //!
 //! To extract HTMX headers from incoming requests in `axum`, you can directly use headers in [`crate::request`] in your
 //! handler functions as they implement `FromRequestParts` and `OptionalFromRequestParts` traits.
@@ -69,7 +69,7 @@
 //! }
 //! ```
 //!
-//! ### Response Builders
+//! ## Response Builders
 //!
 //! To build responses with HTMX headers in `axum`, you can use headers in [`crate::response`] in your handler functions
 //! as they implement `IntoResponseParts` and `IntoResponse` traits.
@@ -97,7 +97,7 @@
 //! }
 //! ```
 //!
-//! ### Auto Vary
+//! ## Auto Vary
 //!
 //! To automatically add the `Vary` header to responses based on the extracted HTMX headers in `axum`, you can use the
 //! `AutoVaryLayer` in [`crate::auto_vary`].
