@@ -102,6 +102,8 @@
 //! To automatically add the `Vary` header to responses based on the extracted HTMX headers in `axum`, you can use the
 //! `AutoVaryLayer` in [`crate::auto_vary`].
 //!
+//! To use the `AutoVaryLayer`, you need to enable the `auto-vary` feature in your `Cargo.toml`.
+//!
 //! Here's an example of using the `AutoVaryLayer`:
 //!
 //! ```rust,ignore
