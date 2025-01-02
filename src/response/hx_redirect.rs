@@ -18,6 +18,13 @@ static HX_REDIRECT: HeaderName = HeaderName::from_static("hx-redirect");
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HxRedirect(Uri);
 
+impl HxRedirect {
+    /// Returns the new location to redirect to.
+    pub fn as_uri(&self) -> &Uri {
+        &self.0
+    }
+}
+
 impl Deref for HxRedirect {
     type Target = Uri;
 

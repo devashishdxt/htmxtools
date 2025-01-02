@@ -62,6 +62,11 @@ impl HxReswap {
     pub const fn none() -> Self {
         Self(SwapOption::None)
     }
+
+    /// Get the value of the `HxReswap`.
+    pub fn swap_option(&self) -> SwapOption {
+        self.0
+    }
 }
 
 impl Deref for HxReswap {

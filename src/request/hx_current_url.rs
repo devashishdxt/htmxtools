@@ -20,6 +20,13 @@ static HX_CURRENT_URL: HeaderName = HeaderName::from_static("hx-current-url");
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HxCurrentUrl(Uri);
 
+impl HxCurrentUrl {
+    /// Returns the current URL of the browser.
+    pub fn as_uri(&self) -> &Uri {
+        &self.0
+    }
+}
+
 impl Deref for HxCurrentUrl {
     type Target = Uri;
 
