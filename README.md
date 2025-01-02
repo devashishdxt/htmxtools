@@ -3,7 +3,7 @@
 A lightweight Rust crate for working with HTMX headers, specifically designed to integrate seamlessly with `axum`.
 
 HTMX is a library that enhances HTML with AJAX capabilities, and it relies heavily on custom headers to enable
-dynamic interactions. The `htmx-headers`` crate simplifies handling these headers in Rust, enabling you to easily
+dynamic interactions. The `htmxtools` crate simplifies handling these headers in Rust, enabling you to easily
 extract, process, and respond with HTMX-related data.
 
 ## Features
@@ -16,20 +16,20 @@ extract, process, and respond with HTMX-related data.
 
 ## Usage
 
-To use `htmx-headers`, run the following command in your project directory:
+To use `htmxtools`, run the following command in your project directory:
 
 ```bash
-cargo add htmx-headers
+cargo add htmxtools
 ```
 
-If you don't want to use `axum`, you can still use the `htmx-headers` crate with other web frameworks. The crate
+If you don't want to use `axum`, you can still use the `htmxtools` crate with other web frameworks. The crate
 implements `headers::Header` trait for all HTMX headers, so you can easily extract and build headers in any
 framework that supports `headers::Header`.
 
-To use `htmx-headers` without `axum`, run the following command in your project directory:
+To use `htmxtools` without `axum`, run the following command in your project directory:
 
 ```bash
-cargo add htmx-headers --no-default-features
+cargo add htmxtools --no-default-features
 ```
 
 ### Request Extractors
