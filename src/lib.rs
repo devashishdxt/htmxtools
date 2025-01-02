@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! A lightweight Rust crate for working with HTMX headers, specifically designed to integrate seamlessly with `axum`.
 //!
 //! HTMX is a library that enhances HTML with AJAX capabilities, and it relies heavily on custom headers to enable
