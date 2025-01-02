@@ -39,7 +39,7 @@
 //!
 //! ```rust,no_run
 //! use axum_core::response::IntoResponse;
-//! use htmx_headers::request::HxRequest;
+//! use htmxtools::request::HxRequest;
 //!
 //! async fn handler(hx_request: Option<HxRequest>) -> impl IntoResponse {
 //!     if hx_request.is_some() {
@@ -54,7 +54,7 @@
 //!
 //! ```rust,no_run
 //! use axum_core::response::IntoResponse;
-//! use htmx_headers::request::HxTarget;
+//! use htmxtools::request::HxTarget;
 //!
 //! async fn handler(hx_target: HxTarget) -> impl IntoResponse {
 //!     format!("The target is: {}", hx_target.as_str())
@@ -77,7 +77,7 @@
 //!
 //! ```rust,no_run
 //! use axum_core::response::IntoResponse;
-//! use htmx_headers::response::HxPushUrl;
+//! use htmxtools::response::HxPushUrl;
 //! use http::Uri;
 //!
 //! async fn handler() -> impl IntoResponse {
@@ -89,7 +89,7 @@
 //!
 //! ```rust,no_run
 //! use axum_core::response::IntoResponse;
-//! use htmx_headers::response::{HxReswap, HxRetarget};
+//! use htmxtools::response::{HxReswap, HxRetarget};
 //!
 //! async fn handler() -> impl IntoResponse {
 //!     (HxReswap::inner_html(), HxRetarget::from_static("#body"), "<div></div>")
@@ -107,7 +107,7 @@
 //!
 //! ```rust,ignore
 //! use axum::Router;
-//! use htmx_headers::auto_vary::AutoVaryLayer;
+//! use htmxtools::auto_vary::AutoVaryLayer;
 //!
 //! fn app() -> Router {
 //!     Router::new().layer(AutoVaryLayer)

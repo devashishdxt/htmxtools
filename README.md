@@ -1,4 +1,4 @@
-# htmx-headers
+# htmxtools
 
 A lightweight Rust crate for working with HTMX headers, specifically designed to integrate seamlessly with `axum`.
 
@@ -34,14 +34,14 @@ cargo add htmx-headers --no-default-features
 
 ### Request Extractors
 
-To extract HTMX headers from incoming requests in `axum`, you can directly use headers in `htmx_headers::request` in your
+To extract HTMX headers from incoming requests in `axum`, you can directly use headers in `htmxtools::request` in your
 handler functions as they implement `FromRequestParts` and `OptionalFromRequestParts` traits.
 
 Here's an example of extracting the `hx-request` header:
 
 ```rust
 use axum_core::response::IntoResponse;
-use htmx_headers::request::HxRequest;
+use htmxtools::request::HxRequest;
 
 async fn handler(hx_request: Option<HxRequest>) -> impl IntoResponse {
     if hx_request.is_some() {
@@ -56,7 +56,7 @@ Here's another example of extracting the `hx-target` header:
 
 ```rust
 use axum_core::response::IntoResponse;
-use htmx_headers::request::HxTarget;
+use htmxtools::request::HxTarget;
 
 async fn handler(hx_target: HxTarget) -> impl IntoResponse {
     format!("The target is: {}", hx_target.as_str())
@@ -72,14 +72,14 @@ async fn another_handler(hx_target: Option<HxTarget>) -> impl IntoResponse {
 
 ### Response Builders
 
-To build responses with HTMX headers in `axum`, you can use headers in `htmx_headers::response` in your handler functions
+To build responses with HTMX headers in `axum`, you can use headers in `htmxtools::response` in your handler functions
 as they implement `IntoResponseParts` and `IntoResponse` traits.
 
 Here's an example of building a response with the `hx-push-url` header:
 
 ```rust
 use axum_core::response::IntoResponse;
-use htmx_headers::response::HxPushUrl;
+use htmxtools::response::HxPushUrl;
 use http::Uri;
 
 async fn handler() -> impl IntoResponse {
@@ -91,7 +91,7 @@ Here's another example of building a response with `hx-retarget` and `hx-reswap`
 
 ```rust
 use axum_core::response::IntoResponse;
-use htmx_headers::response::{HxReswap, HxRetarget};
+use htmxtools::response::{HxReswap, HxRetarget};
 
 async fn handler() -> impl IntoResponse {
     (HxReswap::inner_html(), HxRetarget::from_static("#body"), "<div></div>")
@@ -101,7 +101,7 @@ async fn handler() -> impl IntoResponse {
 ### Auto Vary
 
 To automatically add the `Vary` header to responses based on the extracted HTMX headers in `axum`, you can use the
-`AutoVaryLayer` in `htmx_headers::auto_vary`.
+`AutoVaryLayer` in `htmxtools::auto_vary`.
 
 To use the `AutoVaryLayer`, you need to enable the `auto-vary` feature in your `Cargo.toml`.
 
@@ -109,7 +109,7 @@ Here's an example of using the `AutoVaryLayer`:
 
 ```rust
 use axum::Router;
-use htmx_headers::auto_vary::AutoVaryLayer;
+use htmxtools::auto_vary::AutoVaryLayer;
 
 fn app() -> Router {
     Router::new().layer(AutoVaryLayer)
