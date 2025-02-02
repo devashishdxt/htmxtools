@@ -25,7 +25,7 @@ include = [
 edition = "2021"
 
 [features]
-default = ["axum"]
+default = ["axum", "preload"]
 auto-vary = [
     "axum",
     "dep:futures-core",
@@ -34,6 +34,7 @@ auto-vary = [
     "dep:tower-service",
 ]
 axum = ["dep:axum-core", "dep:axum-extra"]
+preload = []
 
 [dependencies]
 axum-core = { version = "0.5", optional = true }
