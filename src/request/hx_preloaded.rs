@@ -10,15 +10,15 @@ use http::request::Parts;
 
 use crate::util::iter::IterExt;
 
-static HX_PRELOAD: HeaderName = HeaderName::from_static("hx-preload");
+static HX_PRELOAD: HeaderName = HeaderName::from_static("hx-preloaded");
 
 /// Indicates that the request is an htmx preload request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct HxPreload;
+pub struct HxPreloaded;
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl<S> FromRequestParts<S> for HxPreload
+impl<S> FromRequestParts<S> for HxPreloaded
 where
     S: Send + Sync,
 {
@@ -33,7 +33,7 @@ where
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl<S> OptionalFromRequestParts<S> for HxPreload
+impl<S> OptionalFromRequestParts<S> for HxPreloaded
 where
     S: Send + Sync,
 {
@@ -49,7 +49,7 @@ where
     }
 }
 
-impl Header for HxPreload {
+impl Header for HxPreloaded {
     fn name() -> &'static HeaderName {
         &HX_PRELOAD
     }
