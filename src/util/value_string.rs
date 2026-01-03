@@ -26,8 +26,10 @@ impl HeaderValueString {
     }
 
     pub(crate) fn as_str(&self) -> &str {
-        // HeaderValueString is only created from HeaderValues
-        // that have validated they are also UTF-8 strings.
+        // SAFETY: HeaderValueString is only created from HeaderValues that have been
+        // validated to be valid UTF-8 strings. All constructors (`try_from_header_value`,
+        // `from_string`, and `from_static`) ensure the HeaderValue can be represented as
+        // a valid UTF-8 string before wrapping it in HeaderValueString.
         unsafe { std::str::from_utf8_unchecked(self.0.as_bytes()) }
     }
 
