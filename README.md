@@ -59,12 +59,12 @@ use axum_core::response::IntoResponse;
 use htmxtools::request::HxTarget;
 
 async fn handler(hx_target: HxTarget) -> impl IntoResponse {
-    format!("The target is: {}", hx_target.as_str())
+    format!("The target tag is: {}", hx_target.tag())
 }
 
 async fn another_handler(hx_target: Option<HxTarget>) -> impl IntoResponse {
     match hx_target {
-        Some(target) => format!("The target is: {}", target.as_str()),
+        Some(target) => format!("The target tag is: {}", target.tag()),
         None => "No target specified".to_string(),
     }
 }
@@ -83,7 +83,7 @@ use htmxtools::response::HxPushUrl;
 use http::Uri;
 
 async fn handler() -> impl IntoResponse {
-    HxPushUrl::url(Uri::from_static("/new-url"))
+    HxPushUrl::from(Uri::from_static("/new-url"))
 }
 ```
 
@@ -94,7 +94,7 @@ use axum_core::response::IntoResponse;
 use htmxtools::response::{HxReswap, HxRetarget};
 
 async fn handler() -> impl IntoResponse {
-    (HxReswap::inner_html(), HxRetarget::from_static("#body"), "<div></div>")
+    (HxReswap::InnerHtml, HxRetarget::from_static("#body"), "<div></div>")
 }
 ```
 
