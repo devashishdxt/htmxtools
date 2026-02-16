@@ -58,12 +58,12 @@
 //! use htmxtools::request::HxTarget;
 //!
 //! async fn handler(hx_target: HxTarget) -> impl IntoResponse {
-//!     format!("The target is: {}", hx_target.as_str())
+//!     format!("The target tag is: {}", hx_target.tag())
 //! }
 //!
 //! async fn another_handler(hx_target: Option<HxTarget>) -> impl IntoResponse {
 //!     match hx_target {
-//!         Some(target) => format!("The target is: {}", target.as_str()),
+//!         Some(target) => format!("The target tag is: {}", target.tag()),
 //!         None => "No target specified".to_string(),
 //!     }
 //! }
@@ -82,7 +82,7 @@
 //! use http::Uri;
 //!
 //! async fn handler() -> impl IntoResponse {
-//!     HxPushUrl::url(Uri::from_static("/new-url"))
+//!     HxPushUrl::from(Uri::from_static("/new-url"))
 //! }
 //! ```
 //!
@@ -93,7 +93,7 @@
 //! use htmxtools::response::{HxReswap, HxRetarget};
 //!
 //! async fn handler() -> impl IntoResponse {
-//!     (HxReswap::inner_html(), HxRetarget::from_static("#body"), "<div></div>")
+//!     (HxReswap::InnerHtml, HxRetarget::from_static("#body"), "<div></div>")
 //! }
 //! ```
 //!
@@ -115,8 +115,11 @@
 //! }
 //! ```
 #[cfg(feature = "auto-vary")]
-#[cfg_attr(docsrs, doc(cfg(feature = "auto-vary")))]
-pub mod auto_vary;
+mod auto_vary;
 pub mod request;
 pub mod response;
 mod util;
+
+#[cfg(feature = "auto-vary")]
+#[cfg_attr(docsrs, doc(cfg(feature = "auto-vary")))]
+pub use self::auto_vary::{AutoVary, AutoVaryLayer};

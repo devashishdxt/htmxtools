@@ -1,5 +1,3 @@
-use std::{iter::once, ops::Deref};
-
 #[cfg(feature = "axum")]
 use axum_core::extract::{FromRequestParts, OptionalFromRequestParts};
 #[cfg(feature = "axum")]
@@ -9,42 +7,25 @@ use headers_core::{Error, Header, HeaderName, HeaderValue};
 use http::request::Parts;
 
 #[cfg(feature = "auto-vary")]
-use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
-use crate::util::{iter::IterExt, value_string::HeaderValueString};
+use crate::auto_vary::{AutoVaryAdd, HxRequestHeader};
+use crate::util::iter::IterExt;
 
-static HX_TRIGGER: HeaderName = HeaderName::from_static("hx-trigger");
+static HX_REQUEST_TYPE: HeaderName = HeaderName::from_static("hx-request-type");
 
-/// The `id` of the triggered element if it exists.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HxTrigger(HeaderValueString);
+/// Indicates whether htmx is requesting a partial page update or full page content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum HxRequestType {
+    /// The request targets a specific element on the page (most common case)
+    Partial,
 
-impl HxTrigger {
-    /// Create a new `HxTrigger` from a static string.
-    ///
-    /// # Panic
-    ///
-    /// Panics if the static string is not a legal header value.
-    pub const fn from_static(src: &'static str) -> Self {
-        Self(HeaderValueString::from_static(src))
-    }
-
-    /// View this `HxTrigger` as a `&str`.
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl Deref for HxTrigger {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_str()
-    }
+    /// The request targets the entire body element (including via
+    /// [`hx-boost`](https://four.htmx.org/attributes/hx-boost/)) or uses `hx-select` to extract content
+    Full,
 }
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl<S> FromRequestParts<S> for HxTrigger
+impl<S> FromRequestParts<S> for HxRequestType
 where
     S: Send + Sync,
 {
@@ -52,7 +33,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::Trigger).await;
+        parts.auto_vary_add(HxRequestHeader::RequestType);
 
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -62,7 +43,7 @@ where
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl<S> OptionalFromRequestParts<S> for HxTrigger
+impl<S> OptionalFromRequestParts<S> for HxRequestType
 where
     S: Send + Sync,
 {
@@ -73,7 +54,7 @@ where
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::Trigger).await;
+        parts.auto_vary_add(HxRequestHeader::RequestType);
 
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -81,9 +62,9 @@ where
     }
 }
 
-impl Header for HxTrigger {
+impl Header for HxRequestType {
     fn name() -> &'static HeaderName {
-        &HX_TRIGGER
+        &HX_REQUEST_TYPE
     }
 
     fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
@@ -93,12 +74,20 @@ impl Header for HxTrigger {
     {
         values
             .just_one()
-            .map(|value| HeaderValueString::try_from_header_value(value).map(Self))
-            .transpose()?
+            .and_then(|value| {
+                if value == "partial" {
+                    Some(Self::Partial)
+                } else if value == "full" {
+                    Some(Self::Full)
+                } else {
+                    None
+                }
+            })
             .ok_or_else(Error::invalid)
     }
 
-    fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(once(self.0.as_header_value().clone()));
+    fn encode<E: Extend<HeaderValue>>(&self, _: &mut E) {
+        // This is a request header, so encoding it is not valid.
+        // Do nothing
     }
 }

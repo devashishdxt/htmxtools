@@ -7,58 +7,47 @@ use axum_extra::TypedHeader;
 use headers_core::{Error, Header};
 use http::{HeaderName, HeaderValue, Uri};
 
-use crate::util::{iter::IterExt, uri::UriExt};
+use crate::util::uri::UriExt;
 
 const FALSE: HeaderValue = HeaderValue::from_static("false");
+const TRUE: HeaderValue = HeaderValue::from_static("true");
 
 static HX_REPLACE_URL: HeaderName = HeaderName::from_static("hx-replace-url");
 
-/// Replaces the current URL in the location bar.
+/// Replaces the current URL in the location bar. This does not create a new history entry; in effect, it removes the
+/// previous current URL from the browser's history.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HxReplaceUrl(HxReplaceUrlValue);
+pub enum HxReplaceUrl {
+    /// Replaces the current request's url in the browser navigation bar.
+    True,
+
+    /// Disables replacing the fetched URL in the browser navigation bar.
+    False,
+
+    /// Replaces the specified URL in the browser navigation bar.
+    Uri(Uri),
+}
 
 impl HxReplaceUrl {
-    /// Prevents the browser’s current URL from being updated.
-    pub fn prevent() -> Self {
-        Self(HxReplaceUrlValue::Prevent)
-    }
-
-    /// A URL to replace the current URL in the location bar. This may be relative or absolute, as per
-    /// [`history.replaceState()`](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState), but must have
-    /// the same origin as the current URL.
-    pub fn url(uri: Uri) -> Self {
-        Self(HxReplaceUrlValue::Url(uri))
-    }
-
-    /// Get the value of the `HxReplaceUrl`. If `None`, the browser’s current URL will not be updated.
-    pub fn get(&self) -> Option<&Uri> {
-        match &self.0 {
-            HxReplaceUrlValue::Prevent => None,
-            HxReplaceUrlValue::Url(uri) => Some(uri),
-        }
-    }
-
-    fn from_header_value(value: &HeaderValue) -> Result<Self, Error> {
-        if value == FALSE {
-            Ok(Self(HxReplaceUrlValue::Prevent))
-        } else {
-            let uri = value.to_uri()?;
-            Ok(Self(HxReplaceUrlValue::Url(uri)))
-        }
-    }
-
     fn to_header_value(&self) -> Option<HeaderValue> {
-        match &self.0 {
-            HxReplaceUrlValue::Prevent => Some(FALSE.clone()),
-            HxReplaceUrlValue::Url(uri) => HeaderValue::from_uri(uri),
+        match self {
+            Self::False => Some(FALSE),
+            Self::True => Some(TRUE),
+            Self::Uri(uri) => HeaderValue::from_uri(uri),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum HxReplaceUrlValue {
-    Prevent,
-    Url(Uri),
+impl From<bool> for HxReplaceUrl {
+    fn from(value: bool) -> Self {
+        if value { Self::True } else { Self::False }
+    }
+}
+
+impl From<Uri> for HxReplaceUrl {
+    fn from(uri: Uri) -> Self {
+        Self::Uri(uri)
+    }
 }
 
 #[cfg(feature = "axum")]
@@ -84,19 +73,18 @@ impl Header for HxReplaceUrl {
         &HX_REPLACE_URL
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
+    fn decode<'i, I>(_: &mut I) -> Result<Self, Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
-        let value = values.just_one().ok_or_else(Error::invalid)?;
-        Self::from_header_value(value)
+        // This is a response header, so decoding it is not valid.
+        Err(Error::invalid())
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(once(
-            self.to_header_value()
-                .expect("invalid value for HX-Replace-URL"),
-        ));
+        if let Some(header_value) = self.to_header_value() {
+            values.extend(once(header_value));
+        }
     }
 }

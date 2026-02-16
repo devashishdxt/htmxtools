@@ -1,5 +1,3 @@
-use std::iter::once;
-
 #[cfg(feature = "axum")]
 use axum_core::extract::{FromRequestParts, OptionalFromRequestParts};
 #[cfg(feature = "axum")]
@@ -9,7 +7,7 @@ use headers_core::{Error, Header, HeaderName, HeaderValue};
 use http::request::Parts;
 
 #[cfg(feature = "auto-vary")]
-use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
+use crate::auto_vary::{AutoVaryAdd, HxRequestHeader};
 use crate::util::iter::IterExt;
 
 static HX_HISTORY_RESTORE_REQUEST: HeaderName =
@@ -29,9 +27,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts
-            .auto_vary_notify(HxRequestHeader::HistoryRestoreRequest)
-            .await;
+        parts.auto_vary_add(HxRequestHeader::HistoryRestoreRequest);
 
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -52,9 +48,7 @@ where
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts
-            .auto_vary_notify(HxRequestHeader::HistoryRestoreRequest)
-            .await;
+        parts.auto_vary_add(HxRequestHeader::HistoryRestoreRequest);
 
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -78,7 +72,8 @@ impl Header for HxHistoryRestoreRequest {
             .ok_or_else(Error::invalid)
     }
 
-    fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(once(HeaderValue::from_static("true")));
+    fn encode<E: Extend<HeaderValue>>(&self, _: &mut E) {
+        // This is a request header, so encoding it is not valid.
+        // Do nothing
     }
 }

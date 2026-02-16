@@ -1,5 +1,3 @@
-use std::{iter::once, ops::Deref};
-
 #[cfg(feature = "axum")]
 use axum_core::extract::{FromRequestParts, OptionalFromRequestParts};
 #[cfg(feature = "axum")]
@@ -9,42 +7,38 @@ use headers_core::{Error, Header, HeaderName, HeaderValue};
 use http::request::Parts;
 
 #[cfg(feature = "auto-vary")]
-use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
+use crate::auto_vary::{AutoVaryAdd, HxRequestHeader};
 use crate::util::{iter::IterExt, value_string::HeaderValueString};
 
-static HX_TRIGGER_NAME: HeaderName = HeaderName::from_static("hx-trigger-name");
+static HX_SOURCE: HeaderName = HeaderName::from_static("hx-source");
 
-/// The `name` of the triggered element if it exists.
+/// The identifier of the triggering element in format `tag#id` (e.g., `button#submit`). `id` is optional.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HxTriggerName(HeaderValueString);
+pub struct HxSource(HeaderValueString);
 
-impl HxTriggerName {
-    /// Create a new `HxTriggerName` from a static string.
-    ///
-    /// # Panic
-    ///
-    /// Panics if the static string is not a legal header value.
-    pub const fn from_static(src: &'static str) -> Self {
-        Self(HeaderValueString::from_static(src))
+impl HxSource {
+    /// Returns the tag name of the triggering element.
+    pub fn tag(&self) -> &str {
+        if self.0.as_str().contains('#') {
+            self.0.as_str().split_once('#').unwrap().0
+        } else {
+            self.0.as_str()
+        }
     }
 
-    /// View this `HxTriggerName` as a `&str`.
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl Deref for HxTriggerName {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_str()
+    /// Returns the id of the triggering element if it exists.
+    pub fn id(&self) -> Option<&str> {
+        if self.0.as_str().contains('#') {
+            Some(self.0.as_str().split_once('#').unwrap().1)
+        } else {
+            None
+        }
     }
 }
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl<S> FromRequestParts<S> for HxTriggerName
+impl<S> FromRequestParts<S> for HxSource
 where
     S: Send + Sync,
 {
@@ -52,7 +46,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::TriggerName).await;
+        parts.auto_vary_add(HxRequestHeader::Source);
 
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -62,7 +56,7 @@ where
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl<S> OptionalFromRequestParts<S> for HxTriggerName
+impl<S> OptionalFromRequestParts<S> for HxSource
 where
     S: Send + Sync,
 {
@@ -73,7 +67,7 @@ where
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::TriggerName).await;
+        parts.auto_vary_add(HxRequestHeader::Source);
 
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -81,9 +75,9 @@ where
     }
 }
 
-impl Header for HxTriggerName {
+impl Header for HxSource {
     fn name() -> &'static HeaderName {
-        &HX_TRIGGER_NAME
+        &HX_SOURCE
     }
 
     fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
@@ -98,7 +92,8 @@ impl Header for HxTriggerName {
             .ok_or_else(Error::invalid)
     }
 
-    fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(once(self.0.as_header_value().clone()));
+    fn encode<E: Extend<HeaderValue>>(&self, _: &mut E) {
+        // This is a request header, so encoding it is not valid.
+        // Do nothing
     }
 }

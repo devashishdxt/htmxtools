@@ -15,6 +15,6 @@ impl UriExt for HeaderValue {
     }
 
     fn from_uri(uri: &Uri) -> Option<Self> {
-        HeaderValue::from_str(&uri.to_string()).ok()
+        HeaderValue::try_from(uri.to_string()).ok()
     }
 }

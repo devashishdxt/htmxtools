@@ -1,7 +1,4 @@
-use std::{
-    iter::once,
-    ops::{Deref, DerefMut},
-};
+use std::iter::once;
 
 #[cfg(feature = "axum")]
 use axum_core::response::{IntoResponse, IntoResponseParts, Response, ResponseParts};
@@ -9,66 +6,53 @@ use axum_core::response::{IntoResponse, IntoResponseParts, Response, ResponsePar
 use axum_extra::TypedHeader;
 use headers_core::{Error, Header};
 use http::{HeaderName, HeaderValue};
-use serde::Serialize;
+use serde_json::Value;
 
-use super::options::{Event, Events};
+use crate::response::HxTrigger;
 
 static HX_TRIGGER_AFTER_SETTLE: HeaderName = HeaderName::from_static("hx-trigger-after-settle");
 
 /// Allows you to trigger client-side events after the settle step.
-pub struct HxTriggerAfterSettle<'a>(Events<'a>);
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct HxTriggerAfterSettle(HxTrigger);
 
-impl<'a> HxTriggerAfterSettle<'a> {
-    /// Create a new `HxTriggerAfterSettle` with the given event name.
-    pub fn event(name: &'a str) -> Self {
-        let mut events = Events::with_capacity(1);
-        events.push(Event::new(name));
-        Self(events)
+impl HxTriggerAfterSettle {
+    /// Creates a new `HxTrigger` instance.
+    pub fn new() -> Self {
+        Self(HxTrigger::new())
     }
 
-    /// Create a new `HxTriggerAfterSettle` with the given event names.
-    pub fn events(names: &[&'a str]) -> Self {
-        let mut events = Events::with_capacity(names.len());
-        for name in names {
-            events.push(Event::new(name));
-        }
-        Self(events)
+    /// Creates a new `HxTrigger` instance with a specified capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(HxTrigger::with_capacity(capacity))
     }
 
-    /// Create a new `HxTriggerAfterSettle` with the given event name and data.
-    pub fn event_with_data<T>(name: &'a str, data: T) -> Result<Self, serde_json::Error>
-    where
-        T: Serialize,
-    {
-        let mut events = Events::with_capacity(1);
-        events.push(Event::new_with_data(name, data)?);
-        Ok(Self(events))
+    /// Pushes an event with no data.
+    pub fn push_event(&mut self, name: String) -> &mut Self {
+        self.0.push_event(name);
+        self
     }
-}
 
-impl<'a> Deref for HxTriggerAfterSettle<'a> {
-    type Target = Events<'a>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    /// Pushes an event with data.
+    pub fn push_event_data(&mut self, name: String, data: Value) -> &mut Self {
+        self.0.push_event_data(name, data);
+        self
     }
-}
 
-impl DerefMut for HxTriggerAfterSettle<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+    /// Pushes an event with no data.
+    pub fn with_event(self, name: String) -> Self {
+        Self(self.0.with_event(name))
     }
-}
 
-impl<'a> From<Events<'a>> for HxTriggerAfterSettle<'a> {
-    fn from(events: Events<'a>) -> Self {
-        Self(events)
+    /// Pushes an event with data.
+    pub fn with_event_data(self, name: String, data: Value) -> Self {
+        Self(self.0.with_event_data(name, data))
     }
 }
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl IntoResponseParts for HxTriggerAfterSettle<'_> {
+impl IntoResponseParts for HxTriggerAfterSettle {
     type Error = <TypedHeader<Self> as IntoResponseParts>::Error;
 
     fn into_response_parts(self, res: ResponseParts) -> Result<ResponseParts, Self::Error> {
@@ -78,13 +62,13 @@ impl IntoResponseParts for HxTriggerAfterSettle<'_> {
 
 #[cfg(feature = "axum")]
 #[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
-impl IntoResponse for HxTriggerAfterSettle<'_> {
+impl IntoResponse for HxTriggerAfterSettle {
     fn into_response(self) -> Response {
         TypedHeader(self).into_response()
     }
 }
 
-impl Header for HxTriggerAfterSettle<'_> {
+impl Header for HxTriggerAfterSettle {
     fn name() -> &'static HeaderName {
         &HX_TRIGGER_AFTER_SETTLE
     }
@@ -94,16 +78,13 @@ impl Header for HxTriggerAfterSettle<'_> {
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
-        // This is a response header, so we don't need to decode it.
+        // This is a response header, so decoding it is not valid.
         Err(Error::invalid())
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        let value = self
-            .0
-            .to_header_value()
-            .expect("invalid value for HX-Trigger-After-Settle");
-
-        values.extend(once(value));
+        if let Some(value) = self.0.to_header_value() {
+            values.extend(once(value));
+        }
     }
 }

@@ -14,15 +14,17 @@ impl HeaderValueString {
         }
     }
 
-    pub(crate) fn from_string(src: String) -> Option<Self> {
-        // A valid `str` (the argument)...
-        let bytes = Bytes::from(src);
-        HeaderValue::from_maybe_shared(bytes).ok().map(Self)
+    pub(crate) const fn from_static(src: &'static str) -> Self {
+        Self(HeaderValue::from_static(src))
     }
 
-    pub(crate) const fn from_static(src: &'static str) -> HeaderValueString {
-        // A valid `str` (the argument)...
-        Self(HeaderValue::from_static(src))
+    pub(crate) fn from_str(src: &str) -> Option<Self> {
+        HeaderValue::from_str(src).ok().map(Self)
+    }
+
+    pub(crate) fn from_string(src: String) -> Option<Self> {
+        let bytes = Bytes::from(src);
+        HeaderValue::from_maybe_shared(bytes).ok().map(Self)
     }
 
     pub(crate) fn as_str(&self) -> &str {

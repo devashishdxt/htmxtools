@@ -1,6 +1,6 @@
 [package]
 name = "htmxtools"
-version = "0.1.4"
+version = "0.2.0"
 authors = ["Devashish Dixit <devashishdxt@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A lightweight Rust crate for working with HTMX headers, specifically designed to integrate seamlessly with axum."
@@ -22,31 +22,28 @@ include = [
     "LICENSE-MIT",
     "LICENSE-APACHE",
 ]
-edition = "2021"
+edition = "2024"
 
 [features]
-default = ["axum", "preload"]
+default = ["axum"]
 auto-vary = [
     "axum",
-    "dep:futures-core",
-    "dep:tokio",
+    "dep:pin-project-lite",
     "dep:tower-layer",
     "dep:tower-service",
 ]
 axum = ["dep:axum-core", "dep:axum-extra"]
-preload = []
 
 [dependencies]
 axum-core = { version = "0.5", optional = true }
 axum-extra = { version = "0.10", optional = true, features = ["typed-header"] }
 bytes = "1"
-futures-core = { version = "0.3", optional = true }
 headers-core = "0.3"
 http = "1"
 http-serde = "2"
+pin-project-lite = { version = "0.2.16", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", optional = true, features = ["sync"] }
 tower-layer = { version = "0.3", optional = true }
 tower-service = { version = "0.3", optional = true }
 

@@ -1,7 +1,4 @@
-use std::{
-    iter::once,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "axum")]
 use axum_core::extract::{FromRequestParts, OptionalFromRequestParts};
@@ -13,7 +10,7 @@ use http::request::Parts;
 use http::{HeaderValue, Uri};
 
 #[cfg(feature = "auto-vary")]
-use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
+use crate::auto_vary::{AutoVaryAdd, HxRequestHeader};
 use crate::util::{iter::IterExt, uri::UriExt};
 
 static HX_CURRENT_URL: HeaderName = HeaderName::from_static("hx-current-url");
@@ -65,7 +62,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::CurrentUrl).await;
+        parts.auto_vary_add(HxRequestHeader::CurrentUrl);
 
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -86,7 +83,7 @@ where
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::CurrentUrl).await;
+        parts.auto_vary_add(HxRequestHeader::CurrentUrl);
 
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -111,8 +108,8 @@ impl Header for HxCurrentUrl {
             .map(Self)
     }
 
-    fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        let value = HeaderValue::from_uri(&self.0).expect("invalid value for HX-Current-URL");
-        values.extend(once(value));
+    fn encode<E: Extend<HeaderValue>>(&self, _: &mut E) {
+        // This is a request header, so encoding it is not valid.
+        // Do nothing
     }
 }

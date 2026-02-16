@@ -1,38 +1,96 @@
 use std::{
-    collections::BTreeSet,
-    task::{Context, Poll},
+    future::Future,
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::{Context, Poll, ready},
 };
 
 use axum_core::{extract::Request, response::Response};
-use futures_core::future::BoxFuture;
-use http::request::Parts;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use http::{HeaderValue, header::VARY, request::Parts};
+use pin_project_lite::pin_project;
 use tower_layer::Layer;
 use tower_service::Service;
 
-pub(crate) enum HxRequestHeader {
+const HX_BOOSTED: HeaderValue = HeaderValue::from_static("hx-boosted");
+const HX_CURRENT_URL: HeaderValue = HeaderValue::from_static("hx-current-url");
+const HX_HISTORY_RESTORE_REQUEST: HeaderValue =
+    HeaderValue::from_static("hx-history-restore-request");
+const HX_REQUEST: HeaderValue = HeaderValue::from_static("hx-request");
+const HX_REQUEST_TYPE: HeaderValue = HeaderValue::from_static("hx-request-type");
+const HX_SOURCE: HeaderValue = HeaderValue::from_static("hx-source");
+const HX_TARGET: HeaderValue = HeaderValue::from_static("hx-target");
+
+#[derive(Debug, Clone, Copy)]
+pub struct HxRequestHeaderSet(u8);
+
+impl HxRequestHeaderSet {
+    pub fn new() -> Self {
+        Self(0)
+    }
+
+    pub fn add(&mut self, header: HxRequestHeader) {
+        self.0 |= header.mask();
+    }
+
+    pub fn add_to_response(&self, response: &mut Response) {
+        for hx_request_header in HxRequestHeader::iter() {
+            if self.0 & hx_request_header.mask() != 0 {
+                hx_request_header.add_to_response(response);
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HxRequestHeader {
     Boosted,
     CurrentUrl,
     HistoryRestoreRequest,
-    Prompt,
     Request,
+    RequestType,
+    Source,
     Target,
-    TriggerName,
-    Trigger,
 }
 
 impl HxRequestHeader {
-    fn as_str(&self) -> &'static str {
+    pub fn iter() -> impl IntoIterator<Item = Self> {
+        [
+            HxRequestHeader::Boosted,
+            HxRequestHeader::CurrentUrl,
+            HxRequestHeader::HistoryRestoreRequest,
+            HxRequestHeader::Request,
+            HxRequestHeader::RequestType,
+            HxRequestHeader::Source,
+            HxRequestHeader::Target,
+        ]
+    }
+
+    pub fn mask(&self) -> u8 {
         match self {
-            HxRequestHeader::Boosted => "HX-Boosted",
-            HxRequestHeader::CurrentUrl => "HX-Current-URL",
-            HxRequestHeader::HistoryRestoreRequest => "HX-History-Restore-Request",
-            HxRequestHeader::Prompt => "HX-Prompt",
-            HxRequestHeader::Request => "HX-Request",
-            HxRequestHeader::Target => "HX-Target",
-            HxRequestHeader::TriggerName => "HX-Trigger-Name",
-            HxRequestHeader::Trigger => "HX-Trigger",
+            HxRequestHeader::Boosted => 1 << 0,
+            HxRequestHeader::CurrentUrl => 1 << 1,
+            HxRequestHeader::HistoryRestoreRequest => 1 << 2,
+            HxRequestHeader::Request => 1 << 3,
+            HxRequestHeader::RequestType => 1 << 4,
+            HxRequestHeader::Source => 1 << 5,
+            HxRequestHeader::Target => 1 << 6,
         }
+    }
+
+    pub fn value(self) -> HeaderValue {
+        match self {
+            HxRequestHeader::Boosted => HX_BOOSTED,
+            HxRequestHeader::CurrentUrl => HX_CURRENT_URL,
+            HxRequestHeader::HistoryRestoreRequest => HX_HISTORY_RESTORE_REQUEST,
+            HxRequestHeader::Request => HX_REQUEST,
+            HxRequestHeader::RequestType => HX_REQUEST_TYPE,
+            HxRequestHeader::Source => HX_SOURCE,
+            HxRequestHeader::Target => HX_TARGET,
+        }
+    }
+
+    pub fn add_to_response(self, response: &mut Response) {
+        response.headers_mut().insert(VARY, self.value());
     }
 }
 
@@ -65,54 +123,59 @@ where
 
     type Error = S::Error;
 
-    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Future = AutoVaryResponseFuture<S::Future>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
     }
 
     fn call(&mut self, mut req: Request) -> Self::Future {
-        let (sender, mut receiver) = unbounded_channel::<HxRequestHeader>();
-        req.extensions_mut().insert(sender);
+        let set = Arc::new(Mutex::new(HxRequestHeaderSet::new()));
+        req.extensions_mut().insert(set.clone());
 
         let fut = self.inner.call(req);
-
-        Box::pin(async move {
-            let mut res = fut.await?;
-
-            let mut received_headers = BTreeSet::new();
-            while let Some(header) = receiver.recv().await {
-                received_headers.insert(header.as_str());
-            }
-
-            if received_headers.is_empty() {
-                return Ok(res);
-            }
-
-            for received_header in received_headers {
-                res.headers_mut().append(
-                    http::header::VARY,
-                    received_header.parse().expect("invalid htmx Vary header"),
-                );
-            }
-
-            Ok(res)
-        })
+        AutoVaryResponseFuture { fut, set }
     }
 }
 
-pub(crate) trait AutoVaryNotify {
-    async fn auto_vary_notify(self, header: HxRequestHeader);
+pin_project! {
+    pub struct AutoVaryResponseFuture<F> {
+        #[pin]
+        fut: F,
+        set: Arc<Mutex<HxRequestHeaderSet>>,
+    }
 }
 
-impl AutoVaryNotify for &mut Parts {
-    async fn auto_vary_notify(self, header: HxRequestHeader) {
-        if let Some(sender) = self
-            .extensions
-            .get_mut::<UnboundedSender<HxRequestHeader>>()
-        {
-            // ignore the error if the receiver is dropped
-            let _ = sender.send(header);
+impl<F, E> Future for AutoVaryResponseFuture<F>
+where
+    F: Future<Output = Result<Response, E>>,
+{
+    type Output = Result<Response, E>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.project();
+        let mut response = ready!(this.fut.poll(cx));
+
+        if let Ok(ref mut response) = response {
+            if let Ok(lock) = this.set.lock() {
+                lock.add_to_response(response);
+            }
+        }
+
+        Poll::Ready(response)
+    }
+}
+
+pub trait AutoVaryAdd {
+    fn auto_vary_add(self, header: HxRequestHeader);
+}
+
+impl AutoVaryAdd for &mut Parts {
+    fn auto_vary_add(self, header: HxRequestHeader) {
+        if let Some(set) = self.extensions.get_mut::<Arc<Mutex<HxRequestHeaderSet>>>() {
+            if let Ok(mut lock) = set.lock() {
+                lock.add(header);
+            }
         }
     }
 }

@@ -1,7 +1,4 @@
-use std::{
-    iter::once,
-    ops::{Deref, DerefMut},
-};
+use std::iter::once;
 
 #[cfg(feature = "axum")]
 use axum_core::response::{IntoResponse, IntoResponseParts, Response, ResponseParts};
@@ -10,44 +7,24 @@ use axum_extra::TypedHeader;
 use headers_core::{Error, Header, HeaderName};
 use http::{HeaderValue, Uri};
 
-use crate::util::{iter::IterExt, uri::UriExt};
+use crate::util::uri::UriExt;
 
 static HX_REDIRECT: HeaderName = HeaderName::from_static("hx-redirect");
 
 /// Can be used to do a client-side redirect to a new location.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HxRedirect(Uri);
+pub struct HxRedirect(pub Uri);
 
 impl HxRedirect {
-    /// Returns the new location to redirect to.
-    pub fn as_uri(&self) -> &Uri {
-        &self.0
-    }
-}
-
-impl Deref for HxRedirect {
-    type Target = Uri;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for HxRedirect {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+    /// Creates a new `HxRedirect` instance from a URI.
+    pub fn new(uri: Uri) -> Self {
+        Self(uri)
     }
 }
 
 impl From<Uri> for HxRedirect {
     fn from(uri: Uri) -> Self {
         Self(uri)
-    }
-}
-
-impl From<HxRedirect> for Uri {
-    fn from(hx_redirect: HxRedirect) -> Self {
-        hx_redirect.0
     }
 }
 
@@ -74,20 +51,18 @@ impl Header for HxRedirect {
         &HX_REDIRECT
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
+    fn decode<'i, I>(_: &mut I) -> Result<Self, Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
-        values
-            .just_one()
-            .ok_or_else(Error::invalid)?
-            .to_uri()
-            .map(Self)
+        // This is a response header, so decoding it is not valid.
+        Err(Error::invalid())
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        let value = HeaderValue::from_uri(&self.0).expect("invalid value for HX-Redirect");
-        values.extend(once(value));
+        if let Some(value) = HeaderValue::from_uri(&self.0) {
+            values.extend(once(value));
+        }
     }
 }

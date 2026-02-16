@@ -7,57 +7,46 @@ use axum_extra::TypedHeader;
 use headers_core::{Error, Header};
 use http::{HeaderName, HeaderValue, Uri};
 
-use crate::util::{iter::IterExt, uri::UriExt};
+use crate::util::uri::UriExt;
 
 const FALSE: HeaderValue = HeaderValue::from_static("false");
+const TRUE: HeaderValue = HeaderValue::from_static("true");
 
 static HX_PUSH_URL: HeaderName = HeaderName::from_static("hx-push-url");
 
 /// Pushes a new url into the history stack.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HxPushUrl(HxPushUrlValue);
+pub enum HxPushUrl {
+    /// Pushes the current request's url into the history stack.
+    True,
+
+    /// Disables pushing a new url into the history stack.
+    False,
+
+    /// Pushes a new url into the history stack.
+    Uri(Uri),
+}
 
 impl HxPushUrl {
-    /// Prevents the browser’s history from being updated.
-    pub const fn prevent() -> Self {
-        Self(HxPushUrlValue::Prevent)
-    }
-
-    /// A URL to be pushed into the location bar. This may be relative or absolute, as per
-    /// [`history.pushState()`](https://developer.mozilla.org/en-US/docs/Web/API/History/pushState).
-    pub fn url(uri: Uri) -> Self {
-        Self(HxPushUrlValue::Url(uri))
-    }
-
-    /// Get the value of the `HxPushUrl`. If `None`, the browser’s history will not be updated.
-    pub fn get(&self) -> Option<&Uri> {
-        match &self.0 {
-            HxPushUrlValue::Prevent => None,
-            HxPushUrlValue::Url(uri) => Some(uri),
-        }
-    }
-
-    fn from_header_value(value: &HeaderValue) -> Result<Self, Error> {
-        if value == FALSE {
-            Ok(Self(HxPushUrlValue::Prevent))
-        } else {
-            let uri = value.to_uri()?;
-            Ok(Self(HxPushUrlValue::Url(uri)))
-        }
-    }
-
     fn to_header_value(&self) -> Option<HeaderValue> {
-        match &self.0 {
-            HxPushUrlValue::Prevent => Some(FALSE.clone()),
-            HxPushUrlValue::Url(uri) => HeaderValue::from_uri(uri),
+        match self {
+            Self::False => Some(FALSE),
+            Self::True => Some(TRUE),
+            Self::Uri(uri) => HeaderValue::from_uri(uri),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum HxPushUrlValue {
-    Prevent,
-    Url(Uri),
+impl From<bool> for HxPushUrl {
+    fn from(value: bool) -> Self {
+        if value { Self::True } else { Self::False }
+    }
+}
+
+impl From<Uri> for HxPushUrl {
+    fn from(uri: Uri) -> Self {
+        Self::Uri(uri)
+    }
 }
 
 #[cfg(feature = "axum")]
@@ -83,19 +72,18 @@ impl Header for HxPushUrl {
         &HX_PUSH_URL
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
+    fn decode<'i, I>(_: &mut I) -> Result<Self, Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
-        let value = values.just_one().ok_or_else(Error::invalid)?;
-        Self::from_header_value(value)
+        // This is a response header, so decoding it is not valid.
+        Err(Error::invalid())
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(once(
-            self.to_header_value()
-                .expect("invalid value for HX-Push-URL"),
-        ));
+        if let Some(header_value) = self.to_header_value() {
+            values.extend(once(header_value));
+        }
     }
 }

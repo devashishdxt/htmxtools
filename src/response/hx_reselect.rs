@@ -1,4 +1,4 @@
-use std::{iter::once, ops::Deref};
+use std::iter::once;
 
 #[cfg(feature = "axum")]
 use axum_core::response::{IntoResponse, IntoResponseParts, Response, ResponseParts};
@@ -6,12 +6,12 @@ use axum_core::response::{IntoResponse, IntoResponseParts, Response, ResponsePar
 use axum_extra::TypedHeader;
 use headers_core::{Error, Header, HeaderName, HeaderValue};
 
-use crate::util::{iter::IterExt, value_string::HeaderValueString};
+use crate::util::value_string::HeaderValueString;
 
 static HX_RESELECT: HeaderName = HeaderName::from_static("hx-reselect");
 
-/// A CSS selector that allows you to choose which part of the response is used to be swapped in. Overrides an existing
-/// [`hx-select`](https://htmx.org/attributes/hx-select/) on the triggering element.
+/// A CSS selector that allows you to choose which part of the response is used to be swapped in. Overrides an
+/// existing [`hx-select`](https://four.htmx.org/attributes/hx-select/) on the triggering element.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HxReselect(HeaderValueString);
 
@@ -25,22 +25,15 @@ impl HxReselect {
         Self(HeaderValueString::from_static(src))
     }
 
-    /// Create a new `HxReselect` from a string.
+    /// Create a new `HxReselect` from a `&str`.
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(src: &str) -> Option<Self> {
+        HeaderValueString::from_str(src).map(Self)
+    }
+
+    /// Create a new `HxReselect` from a `String`.
     pub fn from_string(src: String) -> Option<Self> {
         HeaderValueString::from_string(src).map(Self)
-    }
-
-    /// View this `HxReselect` as a `&str`.
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl Deref for HxReselect {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_str()
     }
 }
 
@@ -67,16 +60,13 @@ impl Header for HxReselect {
         &HX_RESELECT
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
+    fn decode<'i, I>(_: &mut I) -> Result<Self, Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
-        values
-            .just_one()
-            .map(|value| HeaderValueString::try_from_header_value(value).map(Self))
-            .transpose()?
-            .ok_or_else(Error::invalid)
+        // This is a response header, so decoding it is not valid.
+        Err(Error::invalid())
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {

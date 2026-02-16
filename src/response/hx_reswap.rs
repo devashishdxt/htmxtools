@@ -1,4 +1,4 @@
-use std::{iter::once, ops::Deref};
+use std::iter::once;
 
 #[cfg(feature = "axum")]
 use axum_core::response::{IntoResponse, IntoResponseParts, Response, ResponseParts};
@@ -7,85 +7,80 @@ use axum_extra::TypedHeader;
 use headers_core::{Error, Header};
 use http::{HeaderName, HeaderValue};
 
-use crate::util::iter::IterExt;
-
-use super::options::SwapOption;
+const INNER_HTML: HeaderValue = HeaderValue::from_static("innerHTML");
+const OUTER_HTML: HeaderValue = HeaderValue::from_static("outerHTML");
+const INNER_MORPH: HeaderValue = HeaderValue::from_static("innerMorph");
+const OUTER_MORPH: HeaderValue = HeaderValue::from_static("outerMorph");
+const TEXT_CONTENT: HeaderValue = HeaderValue::from_static("textContent");
+const BEFORE_BEGIN: HeaderValue = HeaderValue::from_static("beforebegin");
+const AFTER_BEGIN: HeaderValue = HeaderValue::from_static("afterbegin");
+const BEFORE_END: HeaderValue = HeaderValue::from_static("beforeend");
+const AFTER_END: HeaderValue = HeaderValue::from_static("afterend");
+const DELETE: HeaderValue = HeaderValue::from_static("delete");
+const NONE: HeaderValue = HeaderValue::from_static("none");
+const UPSERT: HeaderValue = HeaderValue::from_static("upsert");
 
 static HX_RESWAP: HeaderName = HeaderName::from_static("hx-reswap");
 
-/// Allows you to specify how the response will be swapped. See [`SwapOption`] for possible values.
+/// Allows you to specify how the response will be swapped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct HxReswap(SwapOption);
-
-impl HxReswap {
+pub enum HxReswap {
     /// Replace the inner html of the target element.
-    pub const fn inner_html() -> Self {
-        Self(SwapOption::InnerHtml)
-    }
+    InnerHtml,
 
     /// Replace the entire target element with the response.
-    pub const fn outer_html() -> Self {
-        Self(SwapOption::OuterHtml)
-    }
+    OuterHtml,
+
+    /// Morphs the inner HTML of the target to the new content (see [Morphing](https://four.htmx.org/morphing/) for
+    /// details).
+    InnerMorph,
+
+    /// Morphs the outer HTML of the target to the new content (see [Morphing](https://four.htmx.org/morphing/) for
+    /// details)
+    OuterMorph,
 
     /// Replace the text content of the target element, without parsing the response as HTML.
-    pub const fn text_content() -> Self {
-        Self(SwapOption::TextContent)
-    }
+    TextContent,
 
     /// Insert the response before the target element.
-    pub const fn before_begin() -> Self {
-        Self(SwapOption::BeforeBegin)
-    }
+    BeforeBegin,
 
     /// Insert the response before the first child of the target element.
-    pub const fn after_begin() -> Self {
-        Self(SwapOption::AfterBegin)
-    }
+    AfterBegin,
 
     /// Insert the response after the last child of the target element.
-    pub const fn before_end() -> Self {
-        Self(SwapOption::BeforeEnd)
-    }
+    BeforeEnd,
 
     /// Insert the response after the target element.
-    pub const fn after_end() -> Self {
-        Self(SwapOption::AfterEnd)
-    }
+    AfterEnd,
 
-    /// Deletes the target element regardless of the response.
-    pub const fn delete() -> Self {
-        Self(SwapOption::Delete)
-    }
+    /// Delete the target element regardless of the response
+    Delete,
 
     /// Does not append content from response (out of band items will still be processed).
-    pub const fn none() -> Self {
-        Self(SwapOption::None)
-    }
+    None,
 
-    /// Get the value of the `HxReswap`.
-    pub fn swap_option(&self) -> SwapOption {
-        self.0
-    }
+    /// Updates existing elements by ID and inserts new ones (requires
+    /// [upsert extension](https://four.htmx.org/extensions/upsert/)).
+    Upsert,
 }
 
-impl Deref for HxReswap {
-    type Target = SwapOption;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<SwapOption> for HxReswap {
-    fn from(swap_option: SwapOption) -> Self {
-        Self(swap_option)
-    }
-}
-
-impl From<HxReswap> for SwapOption {
-    fn from(hx_reswap: HxReswap) -> Self {
-        hx_reswap.0
+impl HxReswap {
+    fn to_header_value(self) -> HeaderValue {
+        match self {
+            HxReswap::InnerHtml => INNER_HTML,
+            HxReswap::OuterHtml => OUTER_HTML,
+            HxReswap::InnerMorph => INNER_MORPH,
+            HxReswap::OuterMorph => OUTER_MORPH,
+            HxReswap::TextContent => TEXT_CONTENT,
+            HxReswap::BeforeBegin => BEFORE_BEGIN,
+            HxReswap::AfterBegin => AFTER_BEGIN,
+            HxReswap::BeforeEnd => BEFORE_END,
+            HxReswap::AfterEnd => AFTER_END,
+            HxReswap::Delete => DELETE,
+            HxReswap::None => NONE,
+            HxReswap::Upsert => UPSERT,
+        }
     }
 }
 
@@ -112,18 +107,16 @@ impl Header for HxReswap {
         &HX_RESWAP
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
+    fn decode<'i, I>(_: &mut I) -> Result<Self, Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
-        let value = values.just_one().ok_or_else(Error::invalid)?;
-        let swap_option = SwapOption::from_header_value(value)?;
-
-        Ok(Self(swap_option))
+        // This is a response header, so decoding it is not valid.
+        Err(Error::invalid())
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(once(self.0.to_header_value()));
+        values.extend(once(self.to_header_value()));
     }
 }

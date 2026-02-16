@@ -6,11 +6,9 @@ use axum_core::response::{IntoResponse, IntoResponseParts, Response, ResponsePar
 use axum_extra::TypedHeader;
 use headers_core::{Error, Header, HeaderName, HeaderValue};
 
-use crate::util::iter::IterExt;
-
 static HX_REFRESH: HeaderName = HeaderName::from_static("hx-refresh");
 
-/// Indicates that the client-side will do a full refresh of the page.
+/// If set the client-side will do a full refresh of the page.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct HxRefresh;
 
@@ -37,15 +35,13 @@ impl Header for HxRefresh {
         &HX_REFRESH
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
+    fn decode<'i, I>(_: &mut I) -> Result<Self, Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
-        values
-            .just_one()
-            .and_then(|value| if value == "true" { Some(Self) } else { None })
-            .ok_or_else(Error::invalid)
+        // This is a response header, so decoding it is not valid.
+        Err(Error::invalid())
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {

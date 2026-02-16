@@ -1,5 +1,3 @@
-use std::{iter::once, ops::Deref};
-
 #[cfg(feature = "axum")]
 use axum_core::extract::{FromRequestParts, OptionalFromRequestParts};
 #[cfg(feature = "axum")]
@@ -9,36 +7,32 @@ use headers_core::{Error, Header, HeaderName, HeaderValue};
 use http::request::Parts;
 
 #[cfg(feature = "auto-vary")]
-use crate::auto_vary::{AutoVaryNotify, HxRequestHeader};
+use crate::auto_vary::{AutoVaryAdd, HxRequestHeader};
 use crate::util::{iter::IterExt, value_string::HeaderValueString};
 
 static HX_TARGET: HeaderName = HeaderName::from_static("hx-target");
 
-/// The `id` of the target element if it exists.
+/// The identifier of the target element in format `tag#id` (e.g., `div#results`). `id` is optional.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HxTarget(HeaderValueString);
 
 impl HxTarget {
-    /// Create a new `HxTarget` from a static string.
-    ///
-    /// # Panic
-    ///
-    /// Panics if the static string is not a legal header value.
-    pub const fn from_static(src: &'static str) -> Self {
-        Self(HeaderValueString::from_static(src))
+    /// Returns the tag name of the target element.
+    pub fn tag(&self) -> &str {
+        if self.0.as_str().contains('#') {
+            self.0.as_str().split_once('#').unwrap().0
+        } else {
+            self.0.as_str()
+        }
     }
 
-    /// View this `HxTarget` as a `&str`.
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl Deref for HxTarget {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_str()
+    /// Returns the id of the target element if it exists.
+    pub fn id(&self) -> Option<&str> {
+        if self.0.as_str().contains('#') {
+            Some(self.0.as_str().split_once('#').unwrap().1)
+        } else {
+            None
+        }
     }
 }
 
@@ -52,7 +46,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::Target).await;
+        parts.auto_vary_add(HxRequestHeader::Target);
 
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -73,7 +67,7 @@ where
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_notify(HxRequestHeader::Target).await;
+        parts.auto_vary_add(HxRequestHeader::Target);
 
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -98,7 +92,8 @@ impl Header for HxTarget {
             .ok_or_else(Error::invalid)
     }
 
-    fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(once(self.0.as_header_value().clone()));
+    fn encode<E: Extend<HeaderValue>>(&self, _: &mut E) {
+        // This is a request header, so encoding it is not valid.
+        // Do nothing
     }
 }
