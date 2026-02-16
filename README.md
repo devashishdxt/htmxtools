@@ -109,7 +109,7 @@ Here's an example of using the `AutoVaryLayer`:
 
 ```rust
 use axum::Router;
-use htmxtools::auto_vary::AutoVaryLayer;
+use htmxtools::AutoVaryLayer;
 
 fn app() -> Router {
     Router::new().layer(AutoVaryLayer)

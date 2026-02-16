@@ -108,7 +108,7 @@
 //!
 //! ```rust,ignore
 //! use axum::Router;
-//! use htmxtools::auto_vary::AutoVaryLayer;
+//! use htmxtools::AutoVaryLayer;
 //!
 //! fn app() -> Router {
 //!     Router::new().layer(AutoVaryLayer)
