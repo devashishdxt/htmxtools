@@ -193,6 +193,7 @@ dependencies = [
  "bytes",
  "headers-core",
  "http",
+ "http-body",
  "http-serde",
  "pin-project-lite",
  "serde",

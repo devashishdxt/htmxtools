@@ -6,8 +6,8 @@ use headers_core::{Error, Header, HeaderName, HeaderValue};
 #[cfg(feature = "axum")]
 use http::request::Parts;
 
-#[cfg(feature = "auto-vary")]
-use crate::auto_vary::{AutoVaryAdd, HxRequestHeader};
+#[cfg(all(feature = "axum", feature = "auto-vary"))]
+use crate::auto_vary::{HxAutoVaryAdd, HxRequestHeader};
 use crate::util::{iter::IterExt, value_string::HeaderValueString};
 
 static HX_TARGET: HeaderName = HeaderName::from_static("hx-target");
@@ -46,7 +46,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_add(HxRequestHeader::Target);
+        parts.hx_auto_vary_add(HxRequestHeader::Target);
 
         <TypedHeader<Self> as FromRequestParts<S>>::from_request_parts(parts, state)
             .await
@@ -67,7 +67,7 @@ where
         state: &S,
     ) -> Result<Option<Self>, Self::Rejection> {
         #[cfg(feature = "auto-vary")]
-        parts.auto_vary_add(HxRequestHeader::Target);
+        parts.hx_auto_vary_add(HxRequestHeader::Target);
 
         <TypedHeader<Self> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
             .await

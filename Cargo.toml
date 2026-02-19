@@ -25,9 +25,9 @@ include = [
 edition = "2024"
 
 [features]
-default = ["axum"]
+default = ["axum", "auto-vary"]
 auto-vary = [
-    "axum",
+    "dep:http-body",
     "dep:pin-project-lite",
     "dep:tower-layer",
     "dep:tower-service",
@@ -40,6 +40,7 @@ axum-extra = { version = "0.10", optional = true, features = ["typed-header"] }
 bytes = "1"
 headers-core = "0.3"
 http = "1"
+http-body = { version = "1.0.1", optional = true }
 http-serde = "2"
 pin-project-lite = { version = "0.2.16", optional = true }
 serde = { version = "1", features = ["derive"] }

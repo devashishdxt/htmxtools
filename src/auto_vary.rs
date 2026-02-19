@@ -5,8 +5,10 @@ use std::{
     task::{Context, Poll, ready},
 };
 
-use axum_core::{extract::Request, response::Response};
-use http::{HeaderValue, header::VARY, request::Parts};
+#[cfg(feature = "axum")]
+use http::request::Parts;
+use http::{HeaderValue, Request, Response, header::VARY};
+use http_body::Body;
 use pin_project_lite::pin_project;
 use tower_layer::Layer;
 use tower_service::Service;
@@ -28,11 +30,12 @@ impl HxRequestHeaderSet {
         Self(0)
     }
 
+    #[cfg(feature = "axum")]
     pub fn add(&mut self, header: HxRequestHeader) {
         self.0 |= header.mask();
     }
 
-    pub fn add_to_response(&self, response: &mut Response) {
+    pub fn add_to_response<B>(&self, response: &mut Response<B>) {
         for hx_request_header in HxRequestHeader::iter() {
             if self.0 & hx_request_header.mask() != 0 {
                 hx_request_header.add_to_response(response);
@@ -89,7 +92,7 @@ impl HxRequestHeader {
         }
     }
 
-    pub fn add_to_response(self, response: &mut Response) {
+    pub fn add_to_response<B>(self, response: &mut Response<B>) {
         response.headers_mut().append(VARY, self.value());
     }
 }
@@ -97,60 +100,63 @@ impl HxRequestHeader {
 /// A layer that automatically adds the `Vary` header to responses based on the extracted HTMX headers. Read more about
 /// caching in HTMX [here](https://htmx.org/docs/#caching).
 #[derive(Debug, Clone)]
-pub struct AutoVaryLayer;
+pub struct HxAutoVaryLayer;
 
-impl<S> Layer<S> for AutoVaryLayer {
-    type Service = AutoVary<S>;
+impl<S> Layer<S> for HxAutoVaryLayer {
+    type Service = HxAutoVary<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        AutoVary { inner }
+        HxAutoVary { inner }
     }
 }
 
 /// A service that automatically adds the `Vary` header to responses based on the extracted HTMX headers. Read more
 /// about caching in HTMX [here](https://htmx.org/docs/#caching).
 #[derive(Debug, Clone)]
-pub struct AutoVary<S> {
+pub struct HxAutoVary<S> {
     inner: S,
 }
 
-impl<S> Service<Request> for AutoVary<S>
+impl<ReqBody, ResBody, S> Service<Request<ReqBody>> for HxAutoVary<S>
 where
-    S: Service<Request, Response = Response> + Send + 'static,
+    S: Service<Request<ReqBody>, Response = Response<ResBody>> + Send + 'static,
+    ResBody: Body,
     S::Future: Send + 'static,
 {
     type Response = S::Response;
 
     type Error = S::Error;
 
-    type Future = AutoVaryResponseFuture<S::Future>;
+    type Future = HxAutoVaryResponseFuture<S::Future>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
     }
 
-    fn call(&mut self, mut req: Request) -> Self::Future {
+    fn call(&mut self, mut req: Request<ReqBody>) -> Self::Future {
         let set = Arc::new(Mutex::new(HxRequestHeaderSet::new()));
         req.extensions_mut().insert(set.clone());
 
         let fut = self.inner.call(req);
-        AutoVaryResponseFuture { fut, set }
+        HxAutoVaryResponseFuture { fut, set }
     }
 }
 
 pin_project! {
-    pub struct AutoVaryResponseFuture<F> {
+    /// Future returned by [`HxAutoVary`].
+    pub struct HxAutoVaryResponseFuture<F> {
         #[pin]
         fut: F,
         set: Arc<Mutex<HxRequestHeaderSet>>,
     }
 }
 
-impl<F, E> Future for AutoVaryResponseFuture<F>
+impl<F, B, E> Future for HxAutoVaryResponseFuture<F>
 where
-    F: Future<Output = Result<Response, E>>,
+    F: Future<Output = Result<Response<B>, E>>,
+    B: Body,
 {
-    type Output = Result<Response, E>;
+    type Output = Result<Response<B>, E>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
@@ -166,12 +172,14 @@ where
     }
 }
 
-pub trait AutoVaryAdd {
-    fn auto_vary_add(self, header: HxRequestHeader);
+#[cfg(feature = "axum")]
+pub trait HxAutoVaryAdd {
+    fn hx_auto_vary_add(self, header: HxRequestHeader);
 }
 
-impl AutoVaryAdd for &mut Parts {
-    fn auto_vary_add(self, header: HxRequestHeader) {
+#[cfg(feature = "axum")]
+impl HxAutoVaryAdd for &mut Parts {
+    fn hx_auto_vary_add(self, header: HxRequestHeader) {
         if let Some(set) = self.extensions.get_mut::<Arc<Mutex<HxRequestHeaderSet>>>() {
             if let Ok(mut lock) = set.lock() {
                 lock.add(header);

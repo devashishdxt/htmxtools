@@ -100,18 +100,18 @@
 //! ## Auto Vary
 //!
 //! To automatically add the `Vary` header to responses based on the extracted HTMX headers in `axum`, you can use the
-//! `AutoVaryLayer` in [`crate::auto_vary`].
+//! [`HxAutoVaryLayer`].
 //!
-//! To use the `AutoVaryLayer`, you need to enable the `auto-vary` feature in your `Cargo.toml`.
+//! To use the `HxAutoVaryLayer`, you need to enable the `auto-vary` feature in your `Cargo.toml`.
 //!
 //! Here's an example of using the `AutoVaryLayer`:
 //!
 //! ```rust,ignore
 //! use axum::Router;
-//! use htmxtools::AutoVaryLayer;
+//! use htmxtools::HxAutoVaryLayer;
 //!
 //! fn app() -> Router {
-//!     Router::new().layer(AutoVaryLayer)
+//!     Router::new().layer(HxAutoVaryLayer)
 //! }
 //! ```
 #[cfg(feature = "auto-vary")]
@@ -122,4 +122,4 @@ mod util;
 
 #[cfg(feature = "auto-vary")]
 #[cfg_attr(docsrs, doc(cfg(feature = "auto-vary")))]
-pub use self::auto_vary::{AutoVary, AutoVaryLayer};
+pub use self::auto_vary::{HxAutoVary, HxAutoVaryLayer, HxAutoVaryResponseFuture};
