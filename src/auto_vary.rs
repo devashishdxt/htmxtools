@@ -90,7 +90,7 @@ impl HxRequestHeader {
     }
 
     pub fn add_to_response(self, response: &mut Response) {
-        response.headers_mut().insert(VARY, self.value());
+        response.headers_mut().append(VARY, self.value());
     }
 }
 
