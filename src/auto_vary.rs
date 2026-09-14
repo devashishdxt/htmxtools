@@ -162,10 +162,10 @@ where
         let this = self.project();
         let mut response = ready!(this.fut.poll(cx));
 
-        if let Ok(ref mut response) = response {
-            if let Ok(lock) = this.set.lock() {
-                lock.add_to_response(response);
-            }
+        if let Ok(ref mut response) = response
+            && let Ok(lock) = this.set.lock()
+        {
+            lock.add_to_response(response);
         }
 
         Poll::Ready(response)
@@ -180,10 +180,10 @@ pub trait HxAutoVaryAdd {
 #[cfg(feature = "axum")]
 impl HxAutoVaryAdd for &mut Parts {
     fn hx_auto_vary_add(self, header: HxRequestHeader) {
-        if let Some(set) = self.extensions.get_mut::<Arc<Mutex<HxRequestHeaderSet>>>() {
-            if let Ok(mut lock) = set.lock() {
-                lock.add(header);
-            }
+        if let Some(set) = self.extensions.get_mut::<Arc<Mutex<HxRequestHeaderSet>>>()
+            && let Ok(mut lock) = set.lock()
+        {
+            lock.add(header);
         }
     }
 }
